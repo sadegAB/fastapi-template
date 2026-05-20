@@ -1,0 +1,80 @@
+# FastAPI CRUD Pattern
+
+Use this pattern when adding a simple JSON-storage CRUD feature.
+
+Example feature name: books
+
+## Files to create
+
+schemas/books.py
+routers/books.py
+
+## Files to edit
+
+main.py
+
+## Step 1 - Schema
+
+Create schemas/books.py.
+
+Rules:
+- Use Pydantic BaseModel.
+- Use a Create schema for request bodies.
+- Use a response schema for returned data.
+- Response schema should include id.
+- Add created_at and updated_at when useful.
+
+Example structure:
+
+BookCreate:
+- title: string
+- author: string
+
+Book:
+- id: string
+- title: string
+- author: string
+- created_at: string optional
+- updated_at: string optional
+
+## Step 2 - Router
+
+Create routers/books.py.
+
+Rules:
+- Define router = APIRouter(prefix="/books", tags=["books"]).
+- Use load_db(), save_db(), generate_id() from core.storage.
+- Use now_iso() and not_found() from core.utils when useful.
+- Use response_model where practical.
+
+Required endpoints:
+- GET /
+- POST /
+- GET /{book_id}
+- PUT /{book_id}
+- DELETE /{book_id}
+
+## Step 3 - Register router
+
+Edit main.py.
+
+Add import:
+
+from routers import books
+
+Add router registration:
+
+app.include_router(books.router)
+
+## Step 4 - Validate
+
+Run:
+
+python -c "from main import app; print(app.title)"
+python -c "from main import app; print([route.path for route in app.routes])"
+
+Expected:
+- app imports successfully
+- new route paths appear
+- no .env file is tracked
+- no __pycache__ files are tracked
