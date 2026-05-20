@@ -1,44 +1,83 @@
-# Agent Instructions — How to Extend This Project
+# Agent Instructions
 
-You are an AI coding agent. This document tells you exactly how to work with this codebase.
-Read HANDOFF.md first. Then follow these steps strictly.
+You are working inside a reusable FastAPI backend template.
 
-## Rules
-- NEVER modify main.py except to add include_router lines
-- NEVER modify core/storage.py or core/utils.py
-- NEVER change existing files unless fixing a bug
-- ALWAYS follow the exact import paths shown in HANDOFF.md
-- ALWAYS use load_db(), save_db(), generate_id() from core.storage
-- ALWAYS use now_iso(), not_found() from core.utils
-- NEVER install new packages unless absolutely necessary
+Read this file before editing the project.
 
-## To Add a New Feature
+## Core Rules
 
-Given feature name e.g. "books":
+- Keep the template clean, simple, and reusable.
+- Do not add production-specific business logic to shared template files.
+- Do not add a database, authentication, payments, or external services unless the task explicitly requires them.
+- Do not commit .env files.
+- Do not commit __pycache__ files.
+- Do not install new packages unless the task explicitly requires them.
+- Keep code readable and typed where practical.
+- The app must import successfully before the task is complete.
 
-1. CREATE schemas/{feature}.py
-   - XxxCreate(BaseModel) — fields only, no id/timestamps
-   - Xxx(XxxCreate) — adds id, created_at, updated_at
+## Current Architecture
 
-2. CREATE routers/{feature}.py
-   - Import: from core.storage import load_db, save_db, generate_id
-   - Import: from core.utils import now_iso, not_found
-   - Import: from schemas.{feature} import Xxx, XxxCreate
-   - router = APIRouter(prefix="/{feature}s", tags=["Xxx"])
-   - Implement: GET /, POST /, GET /{id}, PUT /{id}, DELETE /{id}
+This template currently uses:
 
-3. EDIT main.py — add exactly these 2 lines:
-   - from routers import {feature}
-   - app.include_router({feature}.router)
+- FastAPI app in main.py
+- Settings in config.py
+- CORS setup in middleware/cors.py
+- Routers in routers/
+- Schemas in schemas/
+- Simple JSON storage helpers in core/storage.py
+- Utility helpers in core/utils.py
 
-4. DO NOT touch any other file.
+## Router Rules
+
+- Create one router file per feature.
+- Each router file must define a variable named router.
+- Use APIRouter.
+- Register new routers in main.py with app.include_router().
+- Use response_model where practical.
+- Keep endpoint paths simple and REST-like.
+
+Example feature routes:
+
+- GET /items/
+- POST /items/
+- GET /items/{item_id}
+- PUT /items/{item_id}
+- DELETE /items/{item_id}
+
+## Schema Rules
+
+- Put request and response schemas in schemas/{feature}.py.
+- Use Pydantic BaseModel.
+- Use Create schemas for request bodies.
+- Use response schemas for returned objects.
+- Do not mix route logic into schemas.
+
+## Storage Rules
+
+The current default storage mode is JSON-file storage.
+
+Use core/storage.py helpers for simple CRUD examples:
+
+- load_db()
+- save_db()
+- generate_id()
+
+Use core/utils.py helpers when useful:
+
+- now_iso()
+- not_found()
+
+Do not treat JSON storage as production data storage.
+
+If the task asks for a real database, add a proper database layer intentionally instead of forcing JSON storage.
 
 ## Validation Checklist
-Before finishing, verify:
-- [ ] All imports use correct paths
-- [ ] router variable is named router in every router file
-- [ ] Every endpoint has correct response_model
-- [ ] generate_id() used for new records
-- [ ] now_iso() used for created_at and updated_at
-- [ ] not_found() used for 404 responses
-- [ ] New db key initialized with db.setdefault()
+
+Before finishing:
+
+- python -c "from main import app; print(app.title)" passes.
+- New router imports work.
+- New routes appear in FastAPI docs.
+- No .env file is tracked.
+- No __pycache__ files are tracked.
+- No unrelated files are changed.
