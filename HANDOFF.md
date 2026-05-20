@@ -1,118 +1,150 @@
-# FastAPI Template — Handoff Document
+# FastAPI Template Handoff
 
 ## Overview
-This is a clean, reusable FastAPI boilerplate. It uses JSON file storage (db.json)
-and Pydantic v2 for validation. No database ORM — easy to swap later.
+
+This is a clean reusable FastAPI backend template using:
+
+- FastAPI
+- Pydantic v2
+- pydantic-settings
+- Uvicorn
+- Simple JSON-file storage for local example CRUD features
+
+The template intentionally does not include a real database or authentication by default.
+
+Add database/auth only when a task explicitly requires it.
+
+## Current Status
+
+The app is clean when this command passes:
+
+python -c "from main import app; print(app.title)"
+
+Expected output:
+
+FastAPI Template
 
 ## File Structure
-fastapi-template/
-├── main.py              # App entry point, registers routers
-├── config.py            # Settings from .env via pydantic-settings
-├── core/
-│   ├── storage.py       # load_db(), save_db(), generate_id()
-│   └── utils.py         # now_iso(), not_found()
-├── models/
-│   └── base.py          # Base Pydantic mixins (TimestampMixin)
-├── schemas/
-│   └── base.py          # Response schemas
-├── routers/
-│   └── health.py        # GET /health — example router
-├── middleware/
-│   └── cors.py          # CORS setup
-├── requirements.txt
-├── .env.example
-├── HANDOFF.md
-└── AGENT_INSTRUCTIONS.md
 
-## Conventions
-- Storage: always use load_db() and save_db() from core.storage
-- IDs: always use generate_id() from core.storage
-- Timestamps: always use now_iso() from core.utils
-- 404 errors: always use not_found(resource, id) from core.utils
-- Models: Pydantic BaseModel, inherit TimestampMixin for timestamps
-- Schemas: separate from models — schemas are for request/response shapes
-- Routers: one file per feature, registered in main.py
+main.py
+config.py
+requirements.txt
+core/
+  storage.py
+  utils.py
+middleware/
+  cors.py
+models/
+  base.py
+routers/
+  health.py
+schemas/
+  base.py
 
-## DB Structure
-db.json is a flat JSON file. Each feature adds its own key:
-{
-  "books": [],
-  "members": [],
-  "loans": []
-}
+## Current Routes
 
-## How to Add a New Feature (e.g. "books")
+GET /
+GET /health/
 
-### Step 1 — Add schema in schemas/books.py
-from pydantic import BaseModel
-from typing import Optional
+Docs:
 
-class BookCreate(BaseModel):
-    title: str
-    author: str
-    genre: str
-    year: int
+/docs
+/redoc
 
-class Book(BookCreate):
-    id: str
-    available: bool = True
-    created_at: Optional[str] = None
-    updated_at: Optional[str] = None
+## Important Rules
 
-### Step 2 — Add router in routers/books.py
-from fastapi import APIRouter
-from core.storage import load_db, save_db, generate_id
-from core.utils import now_iso, not_found
-from schemas.books import Book, BookCreate
+- Do not commit .env files.
+- Do not commit __pycache__ files.
+- Keep shared template files simple.
+- Do not add auth, database, payments, or external services unless requested.
+- Register new routers in main.py.
+- Keep one router file per feature.
+- Keep schemas in schemas/.
+- Keep route logic in routers/.
+- Use response_model where practical.
 
-router = APIRouter(prefix="/books", tags=["Books"])
+## Settings
 
-@router.get("/", response_model=list[Book])
-def get_books():
-    db = load_db()
-    return db.get("books", [])
+Settings are loaded from config.py using pydantic-settings.
 
-@router.post("/", response_model=Book)
-def create_book(data: BookCreate):
-    db = load_db()
-    book = Book(id=generate_id(), created_at=now_iso(), **data.model_dump())
-    db.setdefault("books", []).append(book.model_dump())
-    save_db(db)
-    return book
+Supported environment variables:
 
-@router.get("/{book_id}", response_model=Book)
-def get_book(book_id: str):
-    db = load_db()
-    for book in db.get("books", []):
-        if book["id"] == book_id:
-            return book
-    not_found("Book", book_id)
+APP_NAME
+APP_VERSION
+DEBUG
+HOST
+PORT
 
-@router.put("/{book_id}", response_model=Book)
-def update_book(book_id: str, data: BookCreate):
-    db = load_db()
-    for i, book in enumerate(db.get("books", [])):
-        if book["id"] == book_id:
-            updated = {**book, **data.model_dump(), "updated_at": now_iso()}
-            db["books"][i] = updated
-            save_db(db)
-            return updated
-    not_found("Book", book_id)
+Use .env.example as the reference.
 
-@router.delete("/{book_id}")
-def delete_book(book_id: str):
-    db = load_db()
-    books = db.get("books", [])
-    for i, book in enumerate(books):
-        if book["id"] == book_id:
-            db["books"].pop(i)
-            save_db(db)
-            return {"message": "Deleted"}
-    not_found("Book", book_id)
+## JSON Storage Mode
 
-### Step 3 — Register router in main.py
+The current template uses JSON-file storage helpers in core/storage.py.
+
+Available helpers:
+
+load_db()
+save_db()
+generate_id()
+
+This is only for local examples and simple generated CRUD.
+
+Do not treat db.json as production storage.
+
+If a task asks for a real database, add a proper database layer intentionally.
+
+## Utility Helpers
+
+core/utils.py provides:
+
+now_iso()
+not_found(resource, id)
+
+Use them when they fit the feature.
+
+## Adding a Simple CRUD Feature
+
+For a feature named books:
+
+Create:
+
+schemas/books.py
+routers/books.py
+
+Edit:
+
+main.py
+
+In schemas/books.py:
+
+- define BookCreate
+- define Book response schema
+
+In routers/books.py:
+
+- define router = APIRouter(prefix="/books", tags=["books"])
+- implement GET /
+- implement POST /
+- implement GET /{book_id}
+- implement PUT /{book_id}
+- implement DELETE /{book_id}
+
+In main.py:
+
 from routers import books
 app.include_router(books.router)
 
-### Step 4 — Done
-That is it. The pattern is always the same for every feature.
+## Validation
+
+After changes, run:
+
+python -c "from main import app; print(app.title)"
+python -c "from main import app; print([route.path for route in app.routes])"
+
+Before handoff:
+
+- app imports successfully
+- routes are registered
+- no .env file is tracked
+- no __pycache__ files are tracked
+- git status is clean
