@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+
 from config import settings
 from middleware.cors import add_cors
 from routers import health
@@ -12,14 +13,13 @@ app = FastAPI(
 
 add_cors(app)
 
-# ── Routers ──
 app.include_router(health.router)
 
-# ── Add new routers here ──
-# from routers import books
-# app.include_router(books.router)
 
-
-@app.get("/", tags=["Root"])
-def root():
-    return {"message": f"Welcome to {settings.app_name}", "docs": "/docs"}
+@app.get("/")
+def root() -> dict[str, str]:
+    return {
+        "message": f"Welcome to {settings.app_name}",
+        "docs": "/docs",
+        "health": "/health/",
+    }
